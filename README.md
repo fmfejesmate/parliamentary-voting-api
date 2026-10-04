@@ -4,17 +4,18 @@ Parlamenti szavazó REST API alkalmazás (Java) (Országgyűlés Hivatal Java fe
 
 ## Technikai követelmények
 
-**Futtatáshoz**:
+**Konténeres futtatáshoz**:
 
 - Docker (az alkalmazás Docker-konténerben fut, a H2 adatbázissal együtt)
 
-**Buildhez**:
+**Közvetlen futtatáshoz**:
 
 - Java 21
 - Docker
 
-## Build folyamat
+## Alkalmazás indítása
 
+### Indítás
 A Gradle-nek nem szükséges telepítve lennie a gépre külön, mert a wrapper script letölti: Windowson `gradlew.bat`, Linuxon/macOS-en `gradlew`. Az alábbi parancsokkal tudjuk a scriptet futtatni a különböző operaciós rendszereken:
 
 Windows: `.\gradlew.bat test`
@@ -29,16 +30,45 @@ Folyamat lépései:
 A teljes task lista: `.\gradlew.bat tasks`
 Egy task magyarázata: `.\gradlew.bat help --task test`
 
-#TODO: a teljes alkalmazás buildje még kiegészítésre vár!
+### Főbb taskok
+
+`test` - fordít, futtatja a teszteket;
+`build` - fordít, futtatja a teszteket, elkészíti az alkalmazás generált JAR fájlként;
+`bootRun` - fordít, és indítja az alkalmazásszervert és az alkalmazást;
+
+(Leállítás: Ctrl + C) 
+
+***A test / build / bootRun futtatásához JDK 21 kell (JAVA_HOME vagy PATH)!***
+
+***Az alkalmazást két módon profile-al lehet indítani, `default` vagy `local`:***
+***default: `.\gradlew.bat bootRun`***
+***local: `.\gradlew.bat bootRun --args="--spring.profiles.active=local"`***
+***`local` esetben a Swagger és a H2 konzol elérhető, máskülönben ki van kapcsolva!***
+
+### Alapadatok
+
+Az alkalmazás indulásakor automatikusan létrejönnek adatok a DB-ben, hogy könnyebb legyen tesztelni azt.
+
+Az alábbi adatok jönnek létre:
+
+*Szavazás entitások:*
+*ID          Típus           Időpont                 Elnök*
+*TE1         jelenlét (j)    2023-09-28T11:06:25Z    Kepviselo1 + 3 szavazat (Kepviselo1-3)*
+*TE2         egyszerű (e)    2023-09-28T14:30:00Z    Kepviselo1 + 3 szavazat (Kepviselo1-3)*
+
+
+#TODO: a teljes alkalmazás buildje még kiegészítésre vár: dockeres információk!
 
 ## Swagger elérhetősége
 
 http://localhost:8080/swagger-ui.html
+(csak `local` profillal való indulás esetén elérhető!)
 
 ## H2 konzol elérhetősége
 
 http://localhost:8080/h2-console
+(csak `local` profillal való indulás esetén elérhető!)
 
 JDBC URL: jdbc:h2:mem:szavazasok, user: sa, jelszó üres
 
-A feladat nem határozza meg egyértelműen, hogy in-memory megoldást vár el vagy fájlos tárolást, csak úgy fogalmaz, hogy a futó alkalmazás elmentse és vissza tudja olvasni a szavazást. Ezért az alkalmazás jelenleg in-memory megoldással működik, amely eleget tesz ennek a feltételnek. Azaz újraindítás után az adatok elvesznek. 
+***#INFO: A feladat nem határozza meg egyértelműen, hogy in-memory megoldást vár el vagy fájlos tárolást, csak úgy fogalmaz, hogy a futó alkalmazás elmentse és vissza tudja olvasni a szavazást. Ezért az alkalmazás jelenleg in-memory megoldással működik, amely eleget tesz ennek a feltételnek. Azaz újraindítás után az adatok elvesznek.***
