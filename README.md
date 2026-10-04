@@ -28,3 +28,17 @@ Folyamat lépései:
 
 A teljes task lista: `.\gradlew.bat tasks`
 Egy task magyarázata: `.\gradlew.bat help --task test`
+
+#TODO: a teljes alkalmazás buildje még kiegészítésre vár!
+
+## Swagger elérhetősége
+
+http://localhost:8080/swagger-ui.html
+
+## H2 konzol elérhetősége
+
+http://localhost:8080/h2-console
+
+JDBC URL: jdbc:h2:mem:szavazasok, user: sa, jelszó üres
+
+A feladat nem határozza meg egyértelműen, hogy in-memory megoldást vár el vagy fájlos tárolást, csak úgy fogalmaz, hogy a futó alkalmazás elmentse és vissza tudja olvasni a szavazást. Ezért az alkalmazás jelenleg in-memory megoldással működik, amely eleget tesz ennek a feltételnek. Azaz újraindítás után az adatok elvesznek. 
