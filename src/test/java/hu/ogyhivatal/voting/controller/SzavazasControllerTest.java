@@ -1,5 +1,6 @@
 package hu.ogyhivatal.voting.controller;
 
+import com.jayway.jsonpath.JsonPath;
 import hu.ogyhivatal.voting.repository.SzavazasJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -167,5 +169,47 @@ class SzavazasControllerTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(VALID_BODY))
 				.andExpect(status().isCreated());
+	}
+
+	@Test
+	void representativeVoteIsReturned() throws Exception {
+		String szavazasId = createSzavazas();
+
+		mockMvc.perform(get("/szavazasok/szavazat")
+						.param("szavazas", szavazasId)
+						.param("kepviselo", "Kepviselo1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.szavazat").value("i"));
+	}
+
+	@Test
+	void unknownSzavazasReturnsNotFound() throws Exception {
+		mockMvc.perform(get("/szavazasok/szavazat")
+						.param("szavazas", "XX999")
+						.param("kepviselo", "Kepviselo1"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.errorCode").value("SZAVAZAS_NEM_TALALHATO"));
+	}
+
+	@Test
+	void representativeWithoutVoteReturnsNotFound() throws Exception {
+		String szavazasId = createSzavazas();
+
+		mockMvc.perform(get("/szavazasok/szavazat")
+						.param("szavazas", szavazasId)
+						.param("kepviselo", "Kepviselo99"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.errorCode").value("KEPVISELO_SZAVAZAT_NEM_TALALHATO"));
+	}
+
+	private String createSzavazas() throws Exception {
+		String response = mockMvc.perform(post("/szavazasok/szavazas")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(VALID_BODY))
+				.andExpect(status().isCreated())
+				.andReturn()
+				.getResponse()
+				.getContentAsString();
+		return JsonPath.read(response, "$.szavazasId");
 	}
 }

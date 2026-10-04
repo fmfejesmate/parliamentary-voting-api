@@ -2,6 +2,7 @@ package hu.ogyhivatal.voting.service.impl;
 
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasResponseDto;
+import hu.ogyhivatal.voting.dto.SzavazatLekerdezesResponseDto;
 import hu.ogyhivatal.voting.entity.SzavazasEntity;
 import hu.ogyhivatal.voting.entity.SzavazatEntity;
 import hu.ogyhivatal.voting.exception.ApplicationException;
@@ -45,5 +46,23 @@ public class SzavazasServiceImpl implements SzavazasService {
 				entity.addSzavazat(new SzavazatEntity(szavazat.getKepviselo(), szavazat.getSzavazat())));
 		szavazasJpaRepository.save(entity);
 		return new SzavazasLetrehozasResponseDto(id);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public SzavazatLekerdezesResponseDto szavazatLekerdez(String szavazasId, String kepviselo) {
+		SzavazasEntity szavazas = szavazasJpaRepository.findById(szavazasId)
+				.orElseThrow(() -> new ApplicationException(
+						ErrorCode.SZAVAZAS_NEM_TALALHATO,
+						HttpStatus.NOT_FOUND,
+						"Nincs szavazás a megadott azonosítóval."));
+		return szavazas.getSzavazatok().stream()
+				.filter(szavazat -> szavazat.getKepviselo().equals(kepviselo))
+				.findFirst()
+				.map(szavazat -> new SzavazatLekerdezesResponseDto(szavazat.getSzavazat()))
+				.orElseThrow(() -> new ApplicationException(
+						ErrorCode.KEPVISELO_SZAVAZAT_NEM_TALALHATO,
+						HttpStatus.NOT_FOUND,
+						"A képviselő ezen a szavazáson nem szavazott."));
 	}
 }

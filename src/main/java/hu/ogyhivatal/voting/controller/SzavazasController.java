@@ -3,8 +3,10 @@ package hu.ogyhivatal.voting.controller;
 import hu.ogyhivatal.voting.dto.ErrorResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasResponseDto;
+import hu.ogyhivatal.voting.dto.SzavazatLekerdezesResponseDto;
 import hu.ogyhivatal.voting.service.SzavazasService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,9 +14,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -37,5 +41,19 @@ public class SzavazasController {
 			content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
 	public SzavazasLetrehozasResponseDto letrehoz(@Valid @RequestBody SzavazasLetrehozasRequestDto request) {
 		return szavazasService.letrehoz(request);
+	}
+
+	@GetMapping("/szavazat")
+	@Operation(summary = "Képviselő szavazatának lekérdezése")
+	@ApiResponse(responseCode = "200", description = "A képviselő leadott szavazata",
+			content = @Content(schema = @Schema(implementation = SzavazatLekerdezesResponseDto.class)))
+	@ApiResponse(responseCode = "404", description = "Nincs ilyen szavazás vagy a képviselő nem szavazott",
+			content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+	public SzavazatLekerdezesResponseDto szavazat(
+			@Parameter(description = "A szavazás azonosítója", required = true)
+			@RequestParam("szavazas") String szavazas,
+			@Parameter(description = "A képviselő azonosítója", required = true)
+			@RequestParam("kepviselo") String kepviselo) {
+		return szavazasService.szavazatLekerdez(szavazas, kepviselo);
 	}
 }
