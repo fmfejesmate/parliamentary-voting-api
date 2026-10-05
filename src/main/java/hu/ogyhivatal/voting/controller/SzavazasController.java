@@ -1,6 +1,7 @@
 package hu.ogyhivatal.voting.controller;
 
 import hu.ogyhivatal.voting.dto.ErrorResponseDto;
+import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazatLekerdezesResponseDto;
@@ -55,5 +56,17 @@ public class SzavazasController {
 			@Parameter(description = "A képviselő azonosítója", required = true)
 			@RequestParam("kepviselo") String kepviselo) {
 		return szavazasService.szavazatLekerdez(szavazas, kepviselo);
+	}
+
+	@GetMapping("/eredmeny")
+	@Operation(summary = "Szavazás eredményének lekérdezése")
+	@ApiResponse(responseCode = "200", description = "A szavazás eredménye",
+			content = @Content(schema = @Schema(implementation = SzavazasEredmenyResponseDto.class)))
+	@ApiResponse(responseCode = "404", description = "Nincs ilyen szavazás",
+			content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+	public SzavazasEredmenyResponseDto eredmeny(
+			@Parameter(description = "A szavazás azonosítója", required = true)
+			@RequestParam("szavazas") String szavazas) {
+		return szavazasService.eredmenyLekerdez(szavazas);
 	}
 }

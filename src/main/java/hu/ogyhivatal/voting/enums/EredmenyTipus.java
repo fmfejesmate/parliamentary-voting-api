@@ -7,13 +7,12 @@ import lombok.AllArgsConstructor;
 
 import java.util.Arrays;
 
-@Schema(description = "j = jelenlét; e = egyszerű többségi szavazás; m = minősített többségi szavazás")
+@Schema(description = "F = elfogadott; U = elutasított")
 @AllArgsConstructor
-public enum SzavazasTipus {
+public enum EredmenyTipus {
 
-	JELENLET("j"),
-	EGYSZERU("e"),
-	MINOSITETT("m");
+	ELFOGADOTT("F"),
+	ELUTASITOTT("U");
 
 	private final String kod;
 
@@ -23,10 +22,10 @@ public enum SzavazasTipus {
 	}
 
 	@JsonCreator
-	public static SzavazasTipus fromKod(String kod) {
+	public static EredmenyTipus fromKod(String kod) {
 		return Arrays.stream(values())
 				.filter(value -> value.kod.equals(kod))
 				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("Érvénytelen szavazás típus: " + kod));
+				.orElseThrow(() -> new IllegalArgumentException("Érvénytelen eredmény: " + kod));
 	}
 }

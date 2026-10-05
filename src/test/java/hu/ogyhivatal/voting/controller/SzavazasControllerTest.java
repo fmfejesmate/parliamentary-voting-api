@@ -202,10 +202,117 @@ class SzavazasControllerTest {
 				.andExpect(jsonPath("$.errorCode").value("KEPVISELO_SZAVAZAT_NEM_TALALHATO"));
 	}
 
+	@Test
+	void jelenletEredmenyIsAlwaysAccepted() throws Exception {
+		String szavazasId = createSzavazas();
+
+		mockMvc.perform(get("/szavazasok/eredmeny")
+						.param("szavazas", szavazasId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.eredmeny").value("F"))
+				.andExpect(jsonPath("$.kepviselokSzama").value(3))
+				.andExpect(jsonPath("$.igenekSzama").value(1))
+				.andExpect(jsonPath("$.nemekSzama").value(1))
+				.andExpect(jsonPath("$.tartozkodasokSzama").value(1));
+	}
+
+	@Test
+	void egyszeruEredmenyUsesPreviousJelenletCount() throws Exception {
+		createSzavazas();
+		String egyszeruId = createSzavazas("""
+				{
+				  "idopont": "2023-09-28T14:30:00Z",
+				  "targy": "Egyszerű szavazás",
+				  "tipus": "e",
+				  "eljaras": "n",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo3", "szavazat": "n" }
+				  ]
+				}
+				""");
+
+		mockMvc.perform(get("/szavazasok/eredmeny")
+						.param("szavazas", egyszeruId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.eredmeny").value("F"))
+				.andExpect(jsonPath("$.kepviselokSzama").value(3))
+				.andExpect(jsonPath("$.igenekSzama").value(2))
+				.andExpect(jsonPath("$.nemekSzama").value(1))
+				.andExpect(jsonPath("$.tartozkodasokSzama").value(0));
+	}
+
+	@Test
+	void minositettEredmenyUsesAllRepresentatives() throws Exception {
+		String minositettId = createSzavazas("""
+				{
+				  "idopont": "2023-09-28T16:00:00Z",
+				  "targy": "Minősített szavazás",
+				  "tipus": "m",
+				  "eljaras": "n",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo3", "szavazat": "i" }
+				  ]
+				}
+				""");
+
+		mockMvc.perform(get("/szavazasok/eredmeny")
+						.param("szavazas", minositettId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.eredmeny").value("U"))
+				.andExpect(jsonPath("$.kepviselokSzama").value(200))
+				.andExpect(jsonPath("$.igenekSzama").value(3))
+				.andExpect(jsonPath("$.nemekSzama").value(0))
+				.andExpect(jsonPath("$.tartozkodasokSzama").value(0));
+	}
+
+	@Test
+	void unknownSzavazasEredmenyReturnsNotFound() throws Exception {
+		mockMvc.perform(get("/szavazasok/eredmeny")
+						.param("szavazas", "XX999"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.errorCode").value("SZAVAZAS_NEM_TALALHATO"));
+	}
+
+	@Test
+	void egyszeruWithoutPreviousJelenletIsRejectedWithZeroPresent() throws Exception {
+		String egyszeruId = createSzavazas("""
+				{
+				  "idopont": "2023-09-28T14:30:00Z",
+				  "targy": "Egyszerű szavazás",
+				  "tipus": "e",
+				  "eljaras": "n",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "n" }
+				  ]
+				}
+				""");
+
+		mockMvc.perform(get("/szavazasok/eredmeny")
+						.param("szavazas", egyszeruId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.eredmeny").value("U"))
+				.andExpect(jsonPath("$.kepviselokSzama").value(0))
+				.andExpect(jsonPath("$.igenekSzama").value(1))
+				.andExpect(jsonPath("$.nemekSzama").value(1))
+				.andExpect(jsonPath("$.tartozkodasokSzama").value(0));
+	}
+
 	private String createSzavazas() throws Exception {
+		return createSzavazas(VALID_BODY);
+	}
+
+	private String createSzavazas(String body) throws Exception {
 		String response = mockMvc.perform(post("/szavazasok/szavazas")
 						.contentType(MediaType.APPLICATION_JSON)
-						.content(VALID_BODY))
+						.content(body))
 				.andExpect(status().isCreated())
 				.andReturn()
 				.getResponse()

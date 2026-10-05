@@ -1,5 +1,6 @@
 package hu.ogyhivatal.voting.service.impl;
 
+import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazatLekerdezesResponseDto;
@@ -22,6 +23,7 @@ public class SzavazasServiceImpl implements SzavazasService {
 	private final SzavazasJpaRepository szavazasJpaRepository;
 	private final SzavazasBusinessValidator businessValidator;
 	private final SzavazasIdGenerator idGenerator;
+	private final SzavazasEredmenyCalculator eredmenyCalculator;
 
 	@Override
 	public SzavazasLetrehozasResponseDto letrehoz(SzavazasLetrehozasRequestDto request) {
@@ -51,11 +53,7 @@ public class SzavazasServiceImpl implements SzavazasService {
 	@Override
 	@Transactional(readOnly = true)
 	public SzavazatLekerdezesResponseDto szavazatLekerdez(String szavazasId, String kepviselo) {
-		SzavazasEntity szavazas = szavazasJpaRepository.findById(szavazasId)
-				.orElseThrow(() -> new ApplicationException(
-						ErrorCode.SZAVAZAS_NEM_TALALHATO,
-						HttpStatus.NOT_FOUND,
-						"Nincs szavazás a megadott azonosítóval."));
+		SzavazasEntity szavazas = findSzavazasOrThrow(szavazasId);
 		return szavazas.getSzavazatok().stream()
 				.filter(szavazat -> szavazat.getKepviselo().equals(kepviselo))
 				.findFirst()
@@ -64,5 +62,19 @@ public class SzavazasServiceImpl implements SzavazasService {
 						ErrorCode.KEPVISELO_SZAVAZAT_NEM_TALALHATO,
 						HttpStatus.NOT_FOUND,
 						"A képviselő ezen a szavazáson nem szavazott."));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public SzavazasEredmenyResponseDto eredmenyLekerdez(String szavazasId) {
+		return eredmenyCalculator.calculate(findSzavazasOrThrow(szavazasId));
+	}
+
+	private SzavazasEntity findSzavazasOrThrow(String szavazasId) {
+		return szavazasJpaRepository.findById(szavazasId)
+				.orElseThrow(() -> new ApplicationException(
+						ErrorCode.SZAVAZAS_NEM_TALALHATO,
+						HttpStatus.NOT_FOUND,
+						"Nincs szavazás a megadott azonosítóval."));
 	}
 }

@@ -3,10 +3,12 @@ package hu.ogyhivatal.voting.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 
 import java.util.Arrays;
 
 @Schema(description = "n = normál; s = sürgősségi; k = kivételes; e = szabályzattól eltérő")
+@AllArgsConstructor
 public enum EljarasTipus {
 
 	NORMAL("n"),
@@ -15,10 +17,6 @@ public enum EljarasTipus {
 	SZABALYZATTOL_ELTERO("e");
 
 	private final String kod;
-
-	EljarasTipus(String kod) {
-		this.kod = kod;
-	}
 
 	@JsonValue
 	public String getKod() {

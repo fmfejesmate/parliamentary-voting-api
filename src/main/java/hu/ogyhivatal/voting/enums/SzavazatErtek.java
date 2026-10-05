@@ -3,10 +3,12 @@ package hu.ogyhivatal.voting.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 
 import java.util.Arrays;
 
 @Schema(description = "i = igen; n = nem; t = tartózkodás")
+@AllArgsConstructor
 public enum SzavazatErtek {
 
 	IGEN("i"),
@@ -14,10 +16,6 @@ public enum SzavazatErtek {
 	TARTAZKODAS("t");
 
 	private final String kod;
-
-	SzavazatErtek(String kod) {
-		this.kod = kod;
-	}
 
 	@JsonValue
 	public String getKod() {
