@@ -1,8 +1,11 @@
 package hu.ogyhivatal.voting.service.impl;
 
+import hu.ogyhivatal.voting.dto.NapiSzavazasDto;
+import hu.ogyhivatal.voting.dto.NapiSzavazasokResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasResponseDto;
+import hu.ogyhivatal.voting.dto.SzavazatDto;
 import hu.ogyhivatal.voting.dto.SzavazatLekerdezesResponseDto;
 import hu.ogyhivatal.voting.entity.SzavazasEntity;
 import hu.ogyhivatal.voting.entity.SzavazatEntity;
@@ -14,6 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -68,6 +75,35 @@ public class SzavazasServiceImpl implements SzavazasService {
 	@Transactional(readOnly = true)
 	public SzavazasEredmenyResponseDto eredmenyLekerdez(String szavazasId) {
 		return eredmenyCalculator.calculate(findSzavazasOrThrow(szavazasId));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public NapiSzavazasokResponseDto napiSzavazasok(LocalDate nap) {
+		var kezdet = nap.atStartOfDay(ZoneOffset.UTC).toInstant();
+		var veg = nap.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+		List<NapiSzavazasDto> szavazasok = szavazasJpaRepository
+				.findByIdopontGreaterThanEqualAndIdopontLessThanOrderByIdopontAsc(kezdet, veg)
+				.stream()
+				.map(this::toNapiSzavazasDto)
+				.toList();
+		return new NapiSzavazasokResponseDto(szavazasok);
+	}
+
+	private NapiSzavazasDto toNapiSzavazasDto(SzavazasEntity szavazas) {
+		SzavazasEredmenyResponseDto eredmeny = eredmenyCalculator.calculate(szavazas);
+		List<SzavazatDto> szavazatok = szavazas.getSzavazatok().stream()
+				.map(szavazat -> new SzavazatDto(szavazat.getKepviselo(), szavazat.getSzavazat()))
+				.toList();
+		return new NapiSzavazasDto(
+				szavazas.getIdopont(),
+				szavazas.getTargy(),
+				szavazas.getTipus(),
+				szavazas.getEljaras(),
+				szavazas.getElnok(),
+				eredmeny.getEredmeny(),
+				eredmeny.getKepviselokSzama(),
+				szavazatok);
 	}
 
 	private SzavazasEntity findSzavazasOrThrow(String szavazasId) {

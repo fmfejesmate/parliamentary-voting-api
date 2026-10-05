@@ -305,6 +305,60 @@ class SzavazasControllerTest {
 				.andExpect(jsonPath("$.tartozkodasokSzama").value(0));
 	}
 
+	@Test
+	void napiSzavazasokReturnsVotesForDayOrderedByIdopont() throws Exception {
+		createSzavazas();
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-28T14:30:00Z",
+				  "targy": "Egyszerű szavazás",
+				  "tipus": "e",
+				  "eljaras": "s",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo3", "szavazat": "n" }
+				  ]
+				}
+				""");
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-29T10:00:00Z",
+				  "targy": "Másik nap",
+				  "tipus": "j",
+				  "eljaras": "n",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" }
+				  ]
+				}
+				""");
+
+		mockMvc.perform(get("/szavazasok/napi-szavazasok")
+						.param("nap", "2023-09-28"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.szavazasok.length()").value(2))
+				.andExpect(jsonPath("$.szavazasok[0].idopont").value("2023-09-28T11:06:25Z"))
+				.andExpect(jsonPath("$.szavazasok[0].tipus").value("j"))
+				.andExpect(jsonPath("$.szavazasok[0].eredmeny").value("F"))
+				.andExpect(jsonPath("$.szavazasok[0].kepviselokSzama").value(3))
+				.andExpect(jsonPath("$.szavazasok[0].szavazatok.length()").value(3))
+				.andExpect(jsonPath("$.szavazasok[1].idopont").value("2023-09-28T14:30:00Z"))
+				.andExpect(jsonPath("$.szavazasok[1].tipus").value("e"))
+				.andExpect(jsonPath("$.szavazasok[1].eljaras").value("s"))
+				.andExpect(jsonPath("$.szavazasok[1].eredmeny").value("F"))
+				.andExpect(jsonPath("$.szavazasok[1].kepviselokSzama").value(3));
+	}
+
+	@Test
+	void napiSzavazasokReturnsEmptyListWhenNoVotes() throws Exception {
+		mockMvc.perform(get("/szavazasok/napi-szavazasok")
+						.param("nap", "2020-01-01"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.szavazasok.length()").value(0));
+	}
+
 	private String createSzavazas() throws Exception {
 		return createSzavazas(VALID_BODY);
 	}

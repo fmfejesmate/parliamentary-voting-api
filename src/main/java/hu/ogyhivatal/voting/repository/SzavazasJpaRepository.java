@@ -5,6 +5,7 @@ import hu.ogyhivatal.voting.enums.SzavazasTipus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface SzavazasJpaRepository extends JpaRepository<SzavazasEntity, String> {
@@ -14,4 +15,8 @@ public interface SzavazasJpaRepository extends JpaRepository<SzavazasEntity, Str
 	Optional<SzavazasEntity> findFirstByTipusAndIdopontBeforeOrderByIdopontDesc(
 			SzavazasTipus tipus,
 			Instant idopont);
+
+	List<SzavazasEntity> findByIdopontGreaterThanEqualAndIdopontLessThanOrderByIdopontAsc(
+			Instant kezdet,
+			Instant veg);
 }
