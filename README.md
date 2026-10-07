@@ -15,7 +15,8 @@ Parlamenti szavazó REST API alkalmazás (Java) (Országgyűlés Hivatal Java fe
 
 ## Alkalmazás indítása
 
-### Indítás
+### Közvetlen lokális indítás
+
 A Gradle-nek nem szükséges telepítve lennie a gépre külön, mert a wrapper script letölti: Windowson `gradlew.bat`, Linuxon/macOS-en `gradlew`. Az alábbi parancsokkal tudjuk a scriptet futtatni a különböző operaciós rendszereken:
 
 Windows: `.\gradlew.bat test`
@@ -30,11 +31,12 @@ Folyamat lépései:
 A teljes task lista: `.\gradlew.bat tasks`
 Egy task magyarázata: `.\gradlew.bat help --task test`
 
-### Főbb taskok
+**Főbb taskok:**
 
 `test` - fordít, futtatja a teszteket;
 `build` - fordít, futtatja a teszteket, elkészíti az alkalmazás generált JAR fájlként;
 `bootRun` - fordít, és indítja az alkalmazásszervert és az alkalmazást;
+`dockerBuildImage` - elkészíti a JAR-t, majd Docker image-et épít belőle (`parliamentary-voting-api:0.0.1-SNAPSHOT`);
 
 (Leállítás: Ctrl + C) 
 
@@ -44,6 +46,16 @@ Egy task magyarázata: `.\gradlew.bat help --task test`
 ***default: `.\gradlew.bat bootRun`***
 ***local: `.\gradlew.bat bootRun --args="--spring.profiles.active=local"`***
 ***`local` esetben a Swagger és a H2 konzol elérhető, máskülönben ki van kapcsolva!***
+
+### Docker indítás
+
+Futó Docker daemon kell hozzá.
+Két lépésből áll a folyamat:
+1. Image építése: `.\gradlew.bat dockerBuildImage`
+2. a) Elkészült image indítása: `docker run --rm -p 8080:8080 parliamentary-voting-api:0.0.1-SNAPSHOT`
+2. b) `local` profillal való indítás: `docker run --rm -p 8080:8080 parliamentary-voting-api:0.0.1-SNAPSHOT --spring.profiles.active=local`
+
+A H2 a konténeren belül, memóriában fut. A konténer leállításakor az adatok elvesznek.
 
 ### Alapadatok
 
@@ -55,9 +67,6 @@ Az alábbi adatok jönnek létre:
 *ID          Típus           Időpont                 Elnök*
 *TE1         jelenlét (j)    2023-09-28T11:06:25Z    Kepviselo1 + 3 szavazat (Kepviselo1-3)*
 *TE2         egyszerű (e)    2023-09-28T14:30:00Z    Kepviselo1 + 3 szavazat (Kepviselo1-3)*
-
-
-#TODO: a teljes alkalmazás buildje még kiegészítésre vár: dockeres információk!
 
 ## Swagger elérhetősége
 
