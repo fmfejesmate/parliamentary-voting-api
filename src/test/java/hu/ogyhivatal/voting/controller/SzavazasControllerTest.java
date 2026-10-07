@@ -10,6 +10,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -357,6 +358,64 @@ class SzavazasControllerTest {
 						.param("nap", "2020-01-01"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.szavazasok.length()").value(0));
+	}
+
+	@Test
+	void participationAverageExcludesJelenletAndRoundsToTwoDecimals() throws Exception {
+		createSzavazas();
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-28T14:30:00Z",
+				  "targy": "Első érdemi",
+				  "tipus": "e",
+				  "eljaras": "n",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo3", "szavazat": "n" }
+				  ]
+				}
+				""");
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-28T16:00:00Z",
+				  "targy": "Második érdemi",
+				  "tipus": "e",
+				  "eljaras": "n",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "n" }
+				  ]
+				}
+				""");
+
+		mockMvc.perform(get("/szavazasok/kepviselo-reszvetel-atlag")
+						.param("kezdet", "2023-09-28")
+						.param("veg", "2023-09-28"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.atlag").value(closeTo(1.67, 0.001)));
+	}
+
+	@Test
+	void participationAverageIsZeroWhenOnlyJelenletExists() throws Exception {
+		createSzavazas();
+
+		mockMvc.perform(get("/szavazasok/kepviselo-reszvetel-atlag")
+						.param("kezdet", "2023-09-28")
+						.param("veg", "2023-09-28"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.atlag").value(closeTo(0.0, 0.001)));
+	}
+
+	@Test
+	void participationAverageRejectsInvertedPeriod() throws Exception {
+		mockMvc.perform(get("/szavazasok/kepviselo-reszvetel-atlag")
+						.param("kezdet", "2023-09-29")
+						.param("veg", "2023-09-28"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.errorCode").value("IDOSZAK_ERVENYTELEN"));
 	}
 
 	private String createSzavazas() throws Exception {

@@ -19,4 +19,9 @@ public interface SzavazasJpaRepository extends JpaRepository<SzavazasEntity, Str
 	List<SzavazasEntity> findByIdopontGreaterThanEqualAndIdopontLessThanOrderByIdopontAsc(
 			Instant kezdet,
 			Instant veg);
+
+	List<SzavazasEntity> findByIdopontGreaterThanEqualAndIdopontLessThanAndTipusNot(
+			Instant kezdet,
+			Instant veg,
+			SzavazasTipus tipus);
 }

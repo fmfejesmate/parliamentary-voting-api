@@ -1,5 +1,6 @@
 package hu.ogyhivatal.voting.service.impl;
 
+import hu.ogyhivatal.voting.dto.KepviseloReszvetelAtlagResponseDto;
 import hu.ogyhivatal.voting.dto.NapiSzavazasDto;
 import hu.ogyhivatal.voting.dto.NapiSzavazasokResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
@@ -9,6 +10,7 @@ import hu.ogyhivatal.voting.dto.SzavazatDto;
 import hu.ogyhivatal.voting.dto.SzavazatLekerdezesResponseDto;
 import hu.ogyhivatal.voting.entity.SzavazasEntity;
 import hu.ogyhivatal.voting.entity.SzavazatEntity;
+import hu.ogyhivatal.voting.enums.SzavazasTipus;
 import hu.ogyhivatal.voting.exception.ApplicationException;
 import hu.ogyhivatal.voting.exception.ErrorCode;
 import hu.ogyhivatal.voting.repository.SzavazasJpaRepository;
@@ -18,6 +20,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -80,14 +85,48 @@ public class SzavazasServiceImpl implements SzavazasService {
 	@Override
 	@Transactional(readOnly = true)
 	public NapiSzavazasokResponseDto napiSzavazasok(LocalDate nap) {
-		var kezdet = nap.atStartOfDay(ZoneOffset.UTC).toInstant();
-		var veg = nap.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+		var kezdet = napKezdete(nap);
+		var veg = napKezdete(nap.plusDays(1));
 		List<NapiSzavazasDto> szavazasok = szavazasJpaRepository
 				.findByIdopontGreaterThanEqualAndIdopontLessThanOrderByIdopontAsc(kezdet, veg)
 				.stream()
 				.map(this::toNapiSzavazasDto)
 				.toList();
 		return new NapiSzavazasokResponseDto(szavazasok);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public KepviseloReszvetelAtlagResponseDto kepviseloReszvetelAtlag(LocalDate kezdet, LocalDate veg) {
+		if (veg.isBefore(kezdet)) {
+			throw new ApplicationException(
+					ErrorCode.IDOSZAK_ERVENYTELEN,
+					HttpStatus.BAD_REQUEST,
+					"Az időszak vége nem lehet korábbi, mint a kezdete.");
+		}
+		List<SzavazasEntity> szavazasok = szavazasJpaRepository
+				.findByIdopontGreaterThanEqualAndIdopontLessThanAndTipusNot(
+						napKezdete(kezdet),
+						napKezdete(veg.plusDays(1)),
+						SzavazasTipus.JELENLET);
+		long kepviselok = szavazasok.stream()
+				.flatMap(szavazas -> szavazas.getSzavazatok().stream())
+				.map(SzavazatEntity::getKepviselo)
+				.distinct()
+				.count();
+		if (kepviselok == 0) {
+			return new KepviseloReszvetelAtlagResponseDto(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+		}
+		long reszvetelek = szavazasok.stream()
+				.mapToLong(szavazas -> szavazas.getSzavazatok().size())
+				.sum();
+		BigDecimal atlag = BigDecimal.valueOf(reszvetelek)
+				.divide(BigDecimal.valueOf(kepviselok), 2, RoundingMode.HALF_UP);
+		return new KepviseloReszvetelAtlagResponseDto(atlag);
+	}
+
+	private Instant napKezdete(LocalDate nap) {
+		return nap.atStartOfDay(ZoneOffset.UTC).toInstant();
 	}
 
 	private NapiSzavazasDto toNapiSzavazasDto(SzavazasEntity szavazas) {

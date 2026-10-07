@@ -1,6 +1,7 @@
 package hu.ogyhivatal.voting.controller;
 
 import hu.ogyhivatal.voting.dto.ErrorResponseDto;
+import hu.ogyhivatal.voting.dto.KepviseloReszvetelAtlagResponseDto;
 import hu.ogyhivatal.voting.dto.NapiSzavazasokResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
@@ -84,5 +85,23 @@ public class SzavazasController {
 			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
 			LocalDate nap) {
 		return szavazasService.napiSzavazasok(nap);
+	}
+
+	@GetMapping("/kepviselo-reszvetel-atlag")
+	@Operation(summary = "Képviselők átlagos részvétele egy időszakban")
+	@ApiResponse(responseCode = "200", description = "Átlagos részvétel, jelenléti szavazások nélkül",
+			content = @Content(schema = @Schema(implementation = KepviseloReszvetelAtlagResponseDto.class)))
+	@ApiResponse(responseCode = "400", description = "Érvénytelen időszak",
+			content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+	public KepviseloReszvetelAtlagResponseDto kepviseloReszvetelAtlag(
+			@Parameter(description = "Időszak kezdete (ISO dátum)", required = true, example = "2023-09-28")
+			@RequestParam("kezdet")
+			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+			LocalDate kezdet,
+			@Parameter(description = "Időszak vége (ISO dátum, a nap beleszámít)", required = true, example = "2023-09-28")
+			@RequestParam("veg")
+			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+			LocalDate veg) {
+		return szavazasService.kepviseloReszvetelAtlag(kezdet, veg);
 	}
 }
