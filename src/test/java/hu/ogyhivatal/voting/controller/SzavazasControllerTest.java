@@ -410,6 +410,103 @@ class SzavazasControllerTest {
 	}
 
 	@Test
+	void specialProceduresAreCountedByResultIncludingZerosAndTotals() throws Exception {
+		createSzavazas();
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-28T14:30:00Z",
+				  "targy": "Sürgősségi elfogadott",
+				  "tipus": "e",
+				  "eljaras": "s",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo3", "szavazat": "n" }
+				  ]
+				}
+				""");
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-28T15:00:00Z",
+				  "targy": "Sürgősségi elutasított",
+				  "tipus": "e",
+				  "eljaras": "s",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "n" },
+				    { "kepviselo": "Kepviselo3", "szavazat": "n" }
+				  ]
+				}
+				""");
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-28T16:00:00Z",
+				  "targy": "Kivételes elutasított",
+				  "tipus": "m",
+				  "eljaras": "k",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo2", "szavazat": "i" },
+				    { "kepviselo": "Kepviselo3", "szavazat": "i" }
+				  ]
+				}
+				""");
+		createSzavazas("""
+				{
+				  "idopont": "2023-09-28T17:00:00Z",
+				  "targy": "Normál, nem számít",
+				  "tipus": "j",
+				  "eljaras": "n",
+				  "elnok": "Kepviselo1",
+				  "szavazatok": [
+				    { "kepviselo": "Kepviselo1", "szavazat": "i" }
+				  ]
+				}
+				""");
+
+		mockMvc.perform(get("/szavazasok/kulonleges-eljarasok-szama")
+						.param("kezdet", "2023-09-28")
+						.param("veg", "2023-09-28"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.szavazasok.length()").value(9))
+				.andExpect(jsonPath("$.szavazasok[0].eljaras").value("s"))
+				.andExpect(jsonPath("$.szavazasok[0].eredmeny").value("F"))
+				.andExpect(jsonPath("$.szavazasok[0].szam").value(1))
+				.andExpect(jsonPath("$.szavazasok[1].eljaras").value("s"))
+				.andExpect(jsonPath("$.szavazasok[1].eredmeny").value("U"))
+				.andExpect(jsonPath("$.szavazasok[1].szam").value(1))
+				.andExpect(jsonPath("$.szavazasok[2].eljaras").value("k"))
+				.andExpect(jsonPath("$.szavazasok[2].eredmeny").value("F"))
+				.andExpect(jsonPath("$.szavazasok[2].szam").value(0))
+				.andExpect(jsonPath("$.szavazasok[3].eljaras").value("k"))
+				.andExpect(jsonPath("$.szavazasok[3].eredmeny").value("U"))
+				.andExpect(jsonPath("$.szavazasok[3].szam").value(1))
+				.andExpect(jsonPath("$.szavazasok[4].szam").value(0))
+				.andExpect(jsonPath("$.szavazasok[5].szam").value(0))
+				.andExpect(jsonPath("$.szavazasok[6].eljaras").value("összes"))
+				.andExpect(jsonPath("$.szavazasok[6].eredmeny").value("F"))
+				.andExpect(jsonPath("$.szavazasok[6].szam").value(1))
+				.andExpect(jsonPath("$.szavazasok[7].eljaras").value("összes"))
+				.andExpect(jsonPath("$.szavazasok[7].eredmeny").value("U"))
+				.andExpect(jsonPath("$.szavazasok[7].szam").value(2))
+				.andExpect(jsonPath("$.szavazasok[8].eljaras").value("összes"))
+				.andExpect(jsonPath("$.szavazasok[8].eredmeny").value("összes"))
+				.andExpect(jsonPath("$.szavazasok[8].szam").value(3));
+	}
+
+	@Test
+	void specialProceduresRejectInvertedPeriod() throws Exception {
+		mockMvc.perform(get("/szavazasok/kulonleges-eljarasok-szama")
+						.param("kezdet", "2023-09-29")
+						.param("veg", "2023-09-28"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.errorCode").value("IDOSZAK_ERVENYTELEN"));
+	}
+
+	@Test
 	void participationAverageRejectsInvertedPeriod() throws Exception {
 		mockMvc.perform(get("/szavazasok/kepviselo-reszvetel-atlag")
 						.param("kezdet", "2023-09-29")

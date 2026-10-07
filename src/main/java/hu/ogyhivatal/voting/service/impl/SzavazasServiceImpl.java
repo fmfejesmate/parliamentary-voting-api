@@ -1,6 +1,8 @@
 package hu.ogyhivatal.voting.service.impl;
 
 import hu.ogyhivatal.voting.dto.KepviseloReszvetelAtlagResponseDto;
+import hu.ogyhivatal.voting.dto.KulonlegesEljarasSzamDto;
+import hu.ogyhivatal.voting.dto.KulonlegesEljarasokSzamaResponseDto;
 import hu.ogyhivatal.voting.dto.NapiSzavazasDto;
 import hu.ogyhivatal.voting.dto.NapiSzavazasokResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
@@ -10,6 +12,8 @@ import hu.ogyhivatal.voting.dto.SzavazatDto;
 import hu.ogyhivatal.voting.dto.SzavazatLekerdezesResponseDto;
 import hu.ogyhivatal.voting.entity.SzavazasEntity;
 import hu.ogyhivatal.voting.entity.SzavazatEntity;
+import hu.ogyhivatal.voting.enums.EljarasTipus;
+import hu.ogyhivatal.voting.enums.EredmenyTipus;
 import hu.ogyhivatal.voting.enums.SzavazasTipus;
 import hu.ogyhivatal.voting.exception.ApplicationException;
 import hu.ogyhivatal.voting.exception.ErrorCode;
@@ -25,12 +29,21 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class SzavazasServiceImpl implements SzavazasService {
+
+	private static final String OSSZES = "összes";
+	private static final List<EljarasTipus> KULONLEGES_ELJARASOK = List.of(
+			EljarasTipus.SURGOSSEGI,
+			EljarasTipus.KIVETELES,
+			EljarasTipus.SZABALYZATTOL_ELTERO);
 
 	private final SzavazasJpaRepository szavazasJpaRepository;
 	private final SzavazasBusinessValidator businessValidator;
@@ -98,16 +111,11 @@ public class SzavazasServiceImpl implements SzavazasService {
 	@Override
 	@Transactional(readOnly = true)
 	public KepviseloReszvetelAtlagResponseDto kepviseloReszvetelAtlag(LocalDate kezdet, LocalDate veg) {
-		if (veg.isBefore(kezdet)) {
-			throw new ApplicationException(
-					ErrorCode.IDOSZAK_ERVENYTELEN,
-					HttpStatus.BAD_REQUEST,
-					"Az időszak vége nem lehet korábbi, mint a kezdete.");
-		}
+		Idoszak idoszak = idoszak(kezdet, veg);
 		List<SzavazasEntity> szavazasok = szavazasJpaRepository
 				.findByIdopontGreaterThanEqualAndIdopontLessThanAndTipusNot(
-						napKezdete(kezdet),
-						napKezdete(veg.plusDays(1)),
+						idoszak.kezdet(),
+						idoszak.veg(),
 						SzavazasTipus.JELENLET);
 		long kepviselok = szavazasok.stream()
 				.flatMap(szavazas -> szavazas.getSzavazatok().stream())
@@ -123,6 +131,54 @@ public class SzavazasServiceImpl implements SzavazasService {
 		BigDecimal atlag = BigDecimal.valueOf(reszvetelek)
 				.divide(BigDecimal.valueOf(kepviselok), 2, RoundingMode.HALF_UP);
 		return new KepviseloReszvetelAtlagResponseDto(atlag);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public KulonlegesEljarasokSzamaResponseDto kulonlegesEljarasokSzama(LocalDate kezdet, LocalDate veg) {
+		Idoszak idoszak = idoszak(kezdet, veg);
+		Map<EljarasTipus, Map<EredmenyTipus, Integer>> szamlalok = new EnumMap<>(EljarasTipus.class);
+		szavazasJpaRepository
+				.findByIdopontGreaterThanEqualAndIdopontLessThanAndEljarasIn(
+						idoszak.kezdet(),
+						idoszak.veg(),
+						KULONLEGES_ELJARASOK)
+				.forEach(szavazas -> szamlalok
+						.computeIfAbsent(szavazas.getEljaras(), kulcs -> new EnumMap<>(EredmenyTipus.class))
+						.merge(eredmenyCalculator.calculate(szavazas).getEredmeny(), 1, Integer::sum));
+
+		List<KulonlegesEljarasSzamDto> sorok = new ArrayList<>();
+		int osszesElfogadott = 0;
+		int osszesElutasitott = 0;
+		for (EljarasTipus eljaras : KULONLEGES_ELJARASOK) {
+			int elfogadott = szam(szamlalok, eljaras, EredmenyTipus.ELFOGADOTT);
+			int elutasitott = szam(szamlalok, eljaras, EredmenyTipus.ELUTASITOTT);
+			sorok.add(new KulonlegesEljarasSzamDto(eljaras.getKod(), EredmenyTipus.ELFOGADOTT.getKod(), elfogadott));
+			sorok.add(new KulonlegesEljarasSzamDto(eljaras.getKod(), EredmenyTipus.ELUTASITOTT.getKod(), elutasitott));
+			osszesElfogadott += elfogadott;
+			osszesElutasitott += elutasitott;
+		}
+		sorok.add(new KulonlegesEljarasSzamDto(OSSZES, EredmenyTipus.ELFOGADOTT.getKod(), osszesElfogadott));
+		sorok.add(new KulonlegesEljarasSzamDto(OSSZES, EredmenyTipus.ELUTASITOTT.getKod(), osszesElutasitott));
+		sorok.add(new KulonlegesEljarasSzamDto(OSSZES, OSSZES, osszesElfogadott + osszesElutasitott));
+		return new KulonlegesEljarasokSzamaResponseDto(sorok);
+	}
+
+	private int szam(
+			Map<EljarasTipus, Map<EredmenyTipus, Integer>> szamlalok,
+			EljarasTipus eljaras,
+			EredmenyTipus eredmeny) {
+		return szamlalok.getOrDefault(eljaras, Map.of()).getOrDefault(eredmeny, 0);
+	}
+
+	private Idoszak idoszak(LocalDate kezdet, LocalDate veg) {
+		if (veg.isBefore(kezdet)) {
+			throw new ApplicationException(
+					ErrorCode.IDOSZAK_ERVENYTELEN,
+					HttpStatus.BAD_REQUEST,
+					"Az időszak vége nem lehet korábbi, mint a kezdete.");
+		}
+		return new Idoszak(napKezdete(kezdet), napKezdete(veg.plusDays(1)));
 	}
 
 	private Instant napKezdete(LocalDate nap) {
@@ -143,6 +199,9 @@ public class SzavazasServiceImpl implements SzavazasService {
 				eredmeny.getEredmeny(),
 				eredmeny.getKepviselokSzama(),
 				szavazatok);
+	}
+
+	private record Idoszak(Instant kezdet, Instant veg) {
 	}
 
 	private SzavazasEntity findSzavazasOrThrow(String szavazasId) {

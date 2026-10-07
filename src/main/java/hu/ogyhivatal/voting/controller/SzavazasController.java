@@ -2,6 +2,7 @@ package hu.ogyhivatal.voting.controller;
 
 import hu.ogyhivatal.voting.dto.ErrorResponseDto;
 import hu.ogyhivatal.voting.dto.KepviseloReszvetelAtlagResponseDto;
+import hu.ogyhivatal.voting.dto.KulonlegesEljarasokSzamaResponseDto;
 import hu.ogyhivatal.voting.dto.NapiSzavazasokResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
@@ -103,5 +104,23 @@ public class SzavazasController {
 			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
 			LocalDate veg) {
 		return szavazasService.kepviseloReszvetelAtlag(kezdet, veg);
+	}
+
+	@GetMapping("/kulonleges-eljarasok-szama")
+	@Operation(summary = "Különleges eljárások szavazásainak száma egy időszakban")
+	@ApiResponse(responseCode = "200", description = "Eljárásonként és eredményenként bontott darabszám",
+			content = @Content(schema = @Schema(implementation = KulonlegesEljarasokSzamaResponseDto.class)))
+	@ApiResponse(responseCode = "400", description = "Érvénytelen időszak",
+			content = @Content(schema = @Schema(implementation = ErrorResponseDto.class)))
+	public KulonlegesEljarasokSzamaResponseDto kulonlegesEljarasokSzama(
+			@Parameter(description = "Időszak kezdete (ISO dátum)", required = true, example = "2023-09-28")
+			@RequestParam("kezdet")
+			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+			LocalDate kezdet,
+			@Parameter(description = "Időszak vége (ISO dátum, a nap beleszámít)", required = true, example = "2023-09-28")
+			@RequestParam("veg")
+			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+			LocalDate veg) {
+		return szavazasService.kulonlegesEljarasokSzama(kezdet, veg);
 	}
 }

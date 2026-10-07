@@ -1,6 +1,7 @@
 package hu.ogyhivatal.voting.service;
 
 import hu.ogyhivatal.voting.dto.KepviseloReszvetelAtlagResponseDto;
+import hu.ogyhivatal.voting.dto.KulonlegesEljarasokSzamaResponseDto;
 import hu.ogyhivatal.voting.dto.NapiSzavazasokResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasEredmenyResponseDto;
 import hu.ogyhivatal.voting.dto.SzavazasLetrehozasRequestDto;
@@ -20,4 +21,6 @@ public interface SzavazasService {
 	NapiSzavazasokResponseDto napiSzavazasok(LocalDate nap);
 
 	KepviseloReszvetelAtlagResponseDto kepviseloReszvetelAtlag(LocalDate kezdet, LocalDate veg);
+
+	KulonlegesEljarasokSzamaResponseDto kulonlegesEljarasokSzama(LocalDate kezdet, LocalDate veg);
 }
