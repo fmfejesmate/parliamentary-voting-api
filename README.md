@@ -6,16 +6,27 @@ Parlamenti szavazó REST API alkalmazás (Java) (Országgyűlés Hivatal Java fe
 
 **Konténeres futtatáshoz**:
 
+- Java 21
 - Docker (az alkalmazás Docker-konténerben fut, a H2 adatbázissal együtt)
 
 **Közvetlen futtatáshoz**:
 
 - Java 21
-- Docker
 
 ## Alkalmazás indítása
 
+**- Az egyes parancsokat az alkalmazás klónozott mappájába navigálva szükséges kiadni!**
+**- Az alkalmazás indítása automatizálva van egy scriptes indításra!**
+**- Az alkalmazást profile-al vagy anélkül is lehet indítani ( `local` profile).**
+**- `local` esetben a Swagger és a H2 konzol elérhető, máskülönben ki van kapcsolva!**
+**- Előbbi esetben a Swagger és a H2 konzol az alapértelmezett böngészőben megnyílik automatikusan, amint az alkalmazás elérhető.**
+**- A H2 a memóriában fut. Az alkalmazás leállításakor az adatok elvesznek.**
+**- Leállítás: `Ctrl` + `C`**
+
+
 ### Közvetlen lokális indítás
+
+**Az alább vázolt parancsok futtatásához JDK 21 kell (JAVA_HOME vagy PATH)!**
 
 A Gradle-nek nem szükséges telepítve lennie a gépre külön, mert a wrapper script letölti: Windowson `gradlew.bat`, Linuxon/macOS-en `gradlew`. Az alábbi parancsokkal tudjuk a scriptet futtatni a különböző operaciós rendszereken:
 
@@ -23,6 +34,7 @@ Windows: `.\gradlew.bat test`
 Linux / macOS: `./gradlew test`
 
 Folyamat lépései:
+
 1. Elindítjuk a wrapper scriptet, és átadod a task nevét (pl: `test`).
 2. A script a `gradle/wrapper/gradle-wrapper.properties` alapján tudja, melyik Gradle-verzió kell (jelenleg 9.7.1).
 3. Ha ez a verzió még nincs a gépen, a `gradle/wrapper/gradle-wrapper.jar` letölti és cache-eli (általában a user könyvtár alatt, `GRADLE_USER_HOME`).
@@ -38,35 +50,34 @@ Egy task magyarázata: `.\gradlew.bat help --task test`
 `bootRun` - fordít, és indítja az alkalmazásszervert és az alkalmazást;
 `dockerBuildImage` - elkészíti a JAR-t, majd Docker image-et épít belőle (`parliamentary-voting-api:0.0.1-SNAPSHOT`);
 
-(Leállítás: Ctrl + C) 
+**Indítás:**
 
-***A test / build / bootRun futtatásához JDK 21 kell (JAVA_HOME vagy PATH)!***
-
-***Az alkalmazást két módon profile-al lehet indítani, `default` vagy `local`:***
-***default: `.\gradlew.bat bootRun`***
-***local: `.\gradlew.bat bootRun --args="--spring.profiles.active=local"`***
-***`local` esetben a Swagger és a H2 konzol elérhető, máskülönben ki van kapcsolva!***
+1. profil nélkül: `.\script\boot-run.bat`
+2. `local`: `.\script\boot-run-local.bat`
+(Linuxon/macOS-en: `./script/boot-run.sh` és `./script/boot-run-local.sh`)
 
 ### Docker indítás
 
-Futó Docker daemon kell hozzá.
-Két lépésből áll a folyamat:
-1. Image építése: `.\gradlew.bat dockerBuildImage`
-2. a) Elkészült image indítása: `docker run --rm -p 8080:8080 parliamentary-voting-api:0.0.1-SNAPSHOT`
-2. b) `local` profillal való indítás: `docker run --rm -p 8080:8080 parliamentary-voting-api:0.0.1-SNAPSHOT --spring.profiles.active=local`
+**Futó Docker daemon és JDK 21 (JAVA_HOME vagy PATH) kell hozzá!**
+A script felépíti az image-et, majd elindítja a konténert.
 
-A H2 a konténeren belül, memóriában fut. A konténer leállításakor az adatok elvesznek.
+1. profil nélkül: `.\script\docker-run.bat`
+2. `local` profil: `.\script\docker-run-local.bat` 
+(Linuxon/macOS-en: `./script/docker-run.sh` és `./script/docker-run-local.sh`)
 
 ### Alapadatok
 
-Az alkalmazás indulásakor automatikusan létrejönnek adatok a DB-ben, hogy könnyebb legyen tesztelni azt.
+Az alkalmazás indulásakor automatikusan létrejönnek adatok a DB-ben, hogy könnyebb legyen tesztelni.
 
-Az alábbi adatok jönnek létre:
+Példák üres adatbázis után:
 
-*Szavazás entitások:*
-*ID          Típus           Időpont                 Elnök*
-*TE1         jelenlét (j)    2023-09-28T11:06:25Z    Kepviselo1 + 3 szavazat (Kepviselo1-3)*
-*TE2         egyszerű (e)    2023-09-28T14:30:00Z    Kepviselo1 + 3 szavazat (Kepviselo1-3)*
+- `GET /szavazasok/szavazat?szavazas=TE1&kepviselo=Kepviselo2` → `n`
+- `GET /szavazasok/eredmeny?szavazas=TE0` → `U`, `kepviselokSzama` 0
+- `GET /szavazasok/eredmeny?szavazas=TE8` → `U`, `kepviselokSzama` 200
+- `GET /szavazasok/napi-szavazasok?nap=2023-09-28` → TE1–TE8
+- `GET /szavazasok/napi-szavazasok?nap=2020-01-01` → üres lista
+- `GET /szavazasok/kepviselo-reszvetel-atlag?kezdet=2023-09-28&veg=2023-09-28` → `5.33`
+- `GET /szavazasok/kulonleges-eljarasok-szama?kezdet=2023-09-28&veg=2023-09-28` → `s`/`k`/`e` mind `F` 1 és `U` 1, összesen 6
 
 ## Swagger elérhetősége
 

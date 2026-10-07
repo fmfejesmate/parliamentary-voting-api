@@ -41,7 +41,12 @@ tasks.named('test') {
 tasks.register('dockerBuildImage', Exec) {
 	group = 'application'
 	description = 'Docker image építése az alkalmazásból.'
-	dependsOn tasks.named('bootJar')
+	def bootJar = tasks.named('bootJar', Jar)
+	dependsOn bootJar
 	def libsDir = layout.buildDirectory.dir('libs')
-	commandLine 'docker', 'build', '-f', 'Dockerfile', '-t', "${project.name}:${version}", libsDir.get().asFile.absolutePath
+	commandLine 'docker', 'build',
+			'-f', 'Dockerfile',
+			'-t', "${project.name}:${version}",
+			'--build-arg', "JAR_FILE=${bootJar.get().archiveFileName.get()}",
+			libsDir.get().asFile.absolutePath
 }

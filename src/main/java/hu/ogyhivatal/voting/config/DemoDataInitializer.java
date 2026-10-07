@@ -27,30 +27,88 @@ public class DemoDataInitializer implements ApplicationRunner {
 			return;
 		}
 
-		SzavazasEntity jelenlet = SzavazasEntity.builder()
-				.id("TE1")
-				.idopont(Instant.parse("2023-09-28T11:06:25Z"))
-				.targy("Szavazás tárgya")
-				.tipus(SzavazasTipus.JELENLET)
-				.eljaras(EljarasTipus.NORMAL)
-				.elnok("Kepviselo1")
-				.build();
-		jelenlet.addSzavazat(new SzavazatEntity("Kepviselo1", SzavazatErtek.IGEN));
-		jelenlet.addSzavazat(new SzavazatEntity("Kepviselo2", SzavazatErtek.NEM));
-		jelenlet.addSzavazat(new SzavazatEntity("Kepviselo3", SzavazatErtek.TARTAZKODAS));
-		szavazasJpaRepository.save(jelenlet);
+		save("TE0", "2023-09-27T10:00:00Z", "Szavazás jelenlét előtt",
+				SzavazasTipus.EGYSZERU, EljarasTipus.NORMAL, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN));
 
-		SzavazasEntity egyszeru = SzavazasEntity.builder()
-				.id("TE2")
-				.idopont(Instant.parse("2023-09-28T14:30:00Z"))
-				.targy("Egyszerű többségi szavazás")
-				.tipus(SzavazasTipus.EGYSZERU)
-				.eljaras(EljarasTipus.SURGOSSEGI)
-				.elnok("Kepviselo1")
+		save("TE1", "2023-09-28T11:06:25Z", "Szavazás tárgya",
+				SzavazasTipus.JELENLET, EljarasTipus.NORMAL, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo2", SzavazatErtek.NEM),
+				szavazat("Kepviselo3", SzavazatErtek.TARTAZKODAS));
+
+		save("TE2", "2023-09-28T14:30:00Z", "Egyszerű többségi szavazás",
+				SzavazasTipus.EGYSZERU, EljarasTipus.SURGOSSEGI, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo2", SzavazatErtek.IGEN),
+				szavazat("Kepviselo3", SzavazatErtek.NEM));
+
+		save("TE3", "2023-09-28T15:00:00Z", "Sürgősségi elutasított",
+				SzavazasTipus.EGYSZERU, EljarasTipus.SURGOSSEGI, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.NEM),
+				szavazat("Kepviselo2", SzavazatErtek.IGEN));
+
+		save("TE4", "2023-09-28T15:30:00Z", "Kivételes elfogadott",
+				SzavazasTipus.EGYSZERU, EljarasTipus.KIVETELES, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo2", SzavazatErtek.IGEN),
+				szavazat("Kepviselo3", SzavazatErtek.IGEN));
+
+		save("TE5", "2023-09-28T16:00:00Z", "Kivételes elutasított",
+				SzavazasTipus.EGYSZERU, EljarasTipus.KIVETELES, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo3", SzavazatErtek.NEM));
+
+		save("TE6", "2023-09-28T16:30:00Z", "Szabályzattól eltérő elfogadott",
+				SzavazasTipus.EGYSZERU, EljarasTipus.SZABALYZATTOL_ELTERO, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo2", SzavazatErtek.IGEN),
+				szavazat("Kepviselo3", SzavazatErtek.NEM));
+
+		save("TE7", "2023-09-28T17:00:00Z", "Szabályzattól eltérő elutasított",
+				SzavazasTipus.EGYSZERU, EljarasTipus.SZABALYZATTOL_ELTERO, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.NEM));
+
+		save("TE8", "2023-09-28T17:30:00Z", "Minősített többség",
+				SzavazasTipus.MINOSITETT, EljarasTipus.NORMAL, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo2", SzavazatErtek.IGEN));
+
+		save("TE9", "2023-09-29T09:00:00Z", "Másnapi jelenlét",
+				SzavazasTipus.JELENLET, EljarasTipus.NORMAL, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo2", SzavazatErtek.IGEN),
+				szavazat("Kepviselo4", SzavazatErtek.IGEN));
+
+		save("TE10", "2023-09-29T10:00:00Z", "Másnapi egyszerű szavazás",
+				SzavazasTipus.EGYSZERU, EljarasTipus.NORMAL, "Kepviselo1",
+				szavazat("Kepviselo1", SzavazatErtek.IGEN),
+				szavazat("Kepviselo4", SzavazatErtek.IGEN));
+	}
+
+	private void save(
+			String id,
+			String idopont,
+			String targy,
+			SzavazasTipus tipus,
+			EljarasTipus eljaras,
+			String elnok,
+			SzavazatEntity... szavazatok) {
+		SzavazasEntity szavazas = SzavazasEntity.builder()
+				.id(id)
+				.idopont(Instant.parse(idopont))
+				.targy(targy)
+				.tipus(tipus)
+				.eljaras(eljaras)
+				.elnok(elnok)
 				.build();
-		egyszeru.addSzavazat(new SzavazatEntity("Kepviselo1", SzavazatErtek.IGEN));
-		egyszeru.addSzavazat(new SzavazatEntity("Kepviselo2", SzavazatErtek.IGEN));
-		egyszeru.addSzavazat(new SzavazatEntity("Kepviselo3", SzavazatErtek.NEM));
-		szavazasJpaRepository.save(egyszeru);
+		for (SzavazatEntity szavazat : szavazatok) {
+			szavazas.addSzavazat(szavazat);
+		}
+		szavazasJpaRepository.save(szavazas);
+	}
+
+	private static SzavazatEntity szavazat(String kepviselo, SzavazatErtek ertek) {
+		return new SzavazatEntity(kepviselo, ertek);
 	}
 }
